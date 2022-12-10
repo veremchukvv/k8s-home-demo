@@ -4,7 +4,7 @@ metadata:
   name: app-server-ingress
 spec:
   rules:
-    - host: http://35.228.57.183.nip.io
+    - host: 35.228.57.183.nip.io
       http:
         paths:
           - path: /
