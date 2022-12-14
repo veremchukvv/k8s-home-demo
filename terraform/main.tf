@@ -24,5 +24,5 @@ module "instances" {
   source    = "./modules/dev"
   disk_size = var.disk_size
   zone      = var.zone
-  network = var.network
+  network   = var.network
 }

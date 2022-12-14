@@ -1,14 +1,3 @@
-resource "google_compute_firewall" "default_allow_internal" {
-  description   = "Allow internal traffic on the default network"
-  direction     = "INGRESS"
-  name          = "default-allow-internal"
-  network       = var.network
-  source_ranges = ["10.128.0.0/9"]
-    allow {
-    protocol = "all"
-  }
-}
-
 resource "google_compute_firewall" "allow-http" {
   name = "fw-allow-http"
   network = var.network
