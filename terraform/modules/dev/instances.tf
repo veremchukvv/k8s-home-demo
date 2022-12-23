@@ -47,8 +47,6 @@ resource "google_compute_instance" "master1" {
 
 }
 
-# ansible-playbook -i inventory/mycluster/hosts.ini cluster.yml
-
 resource "google_compute_instance" "slave1" {
   name         = "kubernetes-slave1"
   machine_type = "n2-standard-2"
@@ -72,10 +70,6 @@ resource "google_compute_instance" "slave1" {
   }
 
   metadata = {
-    # startup-script = <<SCRIPT
-    #       useradd deploy
-    #       usermod -a -G sudo deploy
-    #       SCRIPT
     ssh-keys = "root:${tls_private_key.ssh.public_key_openssh}"
   }
 }
@@ -102,10 +96,6 @@ resource "google_compute_instance" "slave2" {
     provisioning_model = "SPOT"
   }
   metadata = {
-    # startup-script = <<SCRIPT
-    #       useradd deploy
-    #       usermod -a -G sudo deploy
-    #       SCRIPT
     ssh-keys = "root:${tls_private_key.ssh.public_key_openssh}"
   }
 }
@@ -132,30 +122,6 @@ data "template_file" "k8s_nodes" {
 
 }
 
-resource "null_resource" "export_rendered_host_template" {
-  provisioner "local-exec" {
-    command = "cat > test_hosts.ini <<EOL\n${data.template_file.hosts.rendered}\nEOL"
-  }
-}
-
-resource "null_resource" "export_rendered_k8s_template" {
-  provisioner "local-exec" {
-    command = "cat > test_k8s-cluster.yml <<EOL\n${data.template_file.k8s_nodes.rendered}\nEOL"
-  }
-}
-
-resource "local_file" "public_key_openssh" {
-  depends_on = [tls_private_key.ssh]
-  content    = tls_private_key.ssh.public_key_openssh
-  filename   = "pub_ssh"
-}
-
-resource "local_file" "private_key_pem" {
-  depends_on = [tls_private_key.ssh]
-  content    = tls_private_key.ssh.private_key_pem
-  filename   = "private_ssh"
-}
-
 resource "time_sleep" "wait_for_master_creation" {
   create_duration = "1m"
 
@@ -169,23 +135,21 @@ resource "null_resource" "file_upload" {
     time_sleep.wait_for_master_creation
   ]
 
-      connection {
-      host        = google_compute_instance.master1.network_interface.0.access_config.0.nat_ip
-      type        = "ssh"
-      user        = "root"
-      private_key = tls_private_key.ssh.private_key_pem
-      agent = false
-    }
+  connection {
+    host        = google_compute_instance.master1.network_interface.0.access_config.0.nat_ip
+    type        = "ssh"
+    user        = "root"
+    private_key = tls_private_key.ssh.private_key_pem
+    agent       = false
+  }
 
-    provisioner "file" {
-      content     = data.template_file.k8s_nodes.rendered
-      destination = "/root/k8s-home-demo/kubespray/inventory/mycluster/group_vars/k8s_cluster/k8s-cluster.yml"
-    }
+  provisioner "file" {
+    content     = data.template_file.k8s_nodes.rendered
+    destination = "/root/k8s-home-demo/kubespray/inventory/mycluster/group_vars/k8s_cluster/k8s-cluster.yml"
+  }
 
-    provisioner "file" {
-      content      = data.template_file.hosts.rendered
-      destination = "/root/k8s-home-demo/kubespray/inventory/mycluster/hosts.ini"
-    }
-
-
+  provisioner "file" {
+    content     = data.template_file.hosts.rendered
+    destination = "/root/k8s-home-demo/kubespray/inventory/mycluster/hosts.ini"
+  }
 }
